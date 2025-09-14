@@ -1,15 +1,87 @@
-<!DOCTYPE HTML>
-<!-- Chatbot page of \-->
+<!DOCTYPE html>
 <html>
-    <head> <!-- metadata of website stored here \-->
-     <meta charset = "UTF-8">
-     <title>Mobile Advocacy Hub Chatbot</title>
-     <link rel="stylesheet" href="mah.css">
-     </head>
-<body style = "background-color:black;">
-<h1 class = "text2"> MOBILE ADVOCACY HUB</h1>
-</h1> 
-<div class="chat-container">
-  <input class="chatbox" type="text" placeholder="Type a message...">
-  <button class="send-btn">Send</button>
-</div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mobile Advocacy Hub Chatbot</title>
+    <link rel="stylesheet" href="mah.css" />
+    <style>
+      body { background:#000; color:#fff; font-family:system-ui; }
+      .chat-container { display:flex; gap:8px; align-items:center; padding:16px; }
+      #chat-log { height:300px; overflow:auto; padding:12px; border:1px solid #444; margin:16px; border-radius:8px; background:#111; }
+      .chat-line { margin:6px 0; }
+      .chat-line.user strong { color:#9ad; }
+      .chat-line.bot strong { color:#ad9; }
+      #status { margin:0 16px 12px; opacity:.8; }
+      input#msg, button#send { font-size:16px; padding:8px 10px; }
+      input#msg { flex:1; min-width:260px; }
+    </style>
+  </head>
+  <body>
+    <h1 class="text2">MOBILE ADVOCACY HUB</h1>
+
+    <div id="chat-log"></div>
+    <div id="status"></div>
+
+    <div class="chat-container">
+      <input id="msg" class="chatbox" type="text" placeholder="Type a message..." />
+      <button id="send" class="send-btn" type="button">Send</button>
+    </div>
+
+    <script>
+      const API_URL = "https://3cg05fvi6l.execute-api.us-east-1.amazonaws.com/chatbot"; 
+      const sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+
+      const $log = document.getElementById("chat-log");
+      const $msg = document.getElementById("msg");
+      const $send = document.getElementById("send");
+      const $status = document.getElementById("status");
+
+      function addLine(role, text) {
+        const row = document.createElement("div");
+        row.className = `chat-line ${role}`;
+        row.innerHTML = `<strong>${role === "user" ? "You" : "Bot"}:</strong> ${text}`;
+        $log.appendChild(row);
+        $log.scrollTop = $log.scrollHeight;
+      }
+
+      async function send() {
+        const text = $msg.value.trim();
+        if (!text) return;
+        $msg.value = "";
+        addLine("user", text);
+
+        try {
+          $status.textContent = "Sending…";
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text, sessionId })
+          });
+
+          const raw = await res.text(); 
+          let data;
+          try {
+            data = JSON.parse(raw);
+            if (data && typeof data.body === "string") {
+              data = JSON.parse(data.body);
+            }
+          } catch {
+            data = { reply: raw };
+          }
+
+          if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+          addLine("bot", data.reply || "(no reply)");
+        } catch (e) {
+          console.error(e);
+          addLine("bot", "Oops—couldn’t reach the server.");
+        } finally {
+          $status.textContent = "";
+        }
+      }
+
+      $send.addEventListener("click", send);
+      $msg.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+    </script>
+  </body>
+</html>
