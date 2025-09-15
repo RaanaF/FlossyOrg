@@ -15,8 +15,7 @@ exports.handler = async (event) => {
   if (!OPENAI_API_KEY) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: "OPENAI_API_KEY not set" }) };
   }
-
-  // Parse request body safely
+  
   let body = {};
   try {
     body = typeof event.body === "string" ? JSON.parse(event.body) : (event.body || {});
@@ -67,3 +66,4 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err?.message || "Unknown error" }) };
   }
 };
+
